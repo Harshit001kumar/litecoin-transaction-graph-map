@@ -1,0 +1,1527 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LTC Address Transaction Aggregator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-1: #09162b;
+      --bg-2: #12365a;
+      --card: #f7f8fc;
+      --ink: #13293d;
+      --ink-soft: #445d75;
+      --line: #d8e2ec;
+      --accent: #e76f51;
+      --accent-2: #2a9d8f;
+      --warn: #c94f38;
+      --ok: #2a9d8f;
+      --shadow: 0 18px 45px rgba(9, 22, 43, 0.28);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(1000px 500px at 90% -10%, #2f7db0 0%, transparent 60%),
+        radial-gradient(850px 650px at -10% 105%, #1f8b82 0%, transparent 60%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      padding: 28px 16px 40px;
+    }
+
+    .wrap {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      animation: rise 500ms ease-out;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero {
+      color: #eef5ff;
+      margin-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 2.8vw, 2rem);
+      letter-spacing: 0.02em;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      color: #d4e7ff;
+      max-width: 900px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .controls {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      font-weight: 600;
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+
+    textarea, input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px 12px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 128px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      color: var(--ink-soft);
+    }
+
+    .toggle input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #f19451);
+      color: white;
+      transition: transform 150ms ease, filter 150ms ease;
+    }
+
+    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.66; cursor: not-allowed; }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      border-top: 1px solid var(--line);
+      padding: 12px 18px;
+      background: #fcfdff;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+    }
+
+    .pill {
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #ebf6f4;
+      color: #1c6e65;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+      margin-top: 14px;
+      grid-template-columns: 1.4fr 1fr;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      font-size: 1rem;
+      letter-spacing: 0.01em;
+      background: #fbfdff;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 62vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      min-width: 860px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #ecf1f5;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #f9fcff;
+      z-index: 2;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #5e7488;
+    }
+
+    td code {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.81rem;
+    }
+
+    .v-pos { color: var(--ok); font-weight: 700; }
+    .v-neg { color: var(--warn); font-weight: 700; }
+
+    .logs {
+      margin: 0;
+      padding: 12px 16px;
+      list-style: none;
+      display: grid;
+      gap: 9px;
+      max-height: 62vh;
+      overflow: auto;
+      font-size: 0.88rem;
+    }
+
+    .logs li {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 9px 10px;
+      background: #fafcff;
+    }
+
+    .logs b {
+      display: inline-block;
+      margin-right: 8px;
+      color: #1f3a54;
+    }
+
+    .ok { color: var(--ok); }
+    .err { color: var(--warn); }
+
+    .tiny {
+      color: #667f96;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+
+    .graph-panel {
+      margin-top: 14px;
+      background: linear-gradient(165deg, #071426, #081c36 68%, #0c2445);
+      border-color: rgba(126, 180, 221, 0.22);
+      color: #d9ebff;
+    }
+
+    .graph-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(154, 193, 225, 0.2);
+      background: rgba(9, 28, 51, 0.72);
+    }
+
+    .graph-head h2 {
+      margin: 0;
+      font-size: 0.95rem;
+      color: #deeeff;
+    }
+
+    .graph-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .graph-search {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(223, 240, 255, 0.08);
+      border: 1px solid rgba(155, 194, 226, 0.35);
+      border-radius: 11px;
+      padding: 4px 6px;
+    }
+
+    .graph-search input {
+      width: 190px;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: #deeeff;
+      padding: 6px;
+      font-size: 0.84rem;
+    }
+
+    .graph-search input::placeholder {
+      color: #96bbdf;
+    }
+
+    .graph-search button {
+      background: linear-gradient(135deg, #355d92, #315584);
+      padding: 7px 8px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+    }
+
+    .graph-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: #c6e0f8;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .graph-check input {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+    }
+
+    .graph-actions button {
+      padding: 8px 10px;
+      font-size: 0.84rem;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #2a9d8f, #238b98);
+    }
+
+    #graphInfo {
+      color: #bddcff;
+      font-size: 0.84rem;
+    }
+
+    .graph-wrap {
+      position: relative;
+      height: min(66vh, 560px);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+    }
+
+    #graphCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(52, 121, 184, 0.2), transparent 38%),
+        radial-gradient(circle at 85% 85%, rgba(50, 152, 138, 0.12), transparent 35%);
+      cursor: grab;
+    }
+
+    #graphCanvas:active {
+      cursor: grabbing;
+    }
+
+    .graph-legend {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: #9fc6eb;
+      pointer-events: none;
+    }
+
+    .detail-pane {
+      border-left: 1px solid rgba(156, 194, 224, 0.22);
+      background: rgba(8, 23, 42, 0.85);
+      padding: 10px;
+      overflow: auto;
+      color: #d8eaff;
+      font-size: 0.83rem;
+    }
+
+    .detail-pane h3 {
+      margin: 4px 0 8px;
+      font-size: 0.92rem;
+      color: #e8f3ff;
+    }
+
+    .d-kv {
+      display: grid;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .d-kv span {
+      color: #9fc1e4;
+    }
+
+    .d-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .d-item {
+      border: 1px solid rgba(154, 196, 230, 0.2);
+      background: rgba(11, 30, 53, 0.7);
+      border-radius: 10px;
+      padding: 7px;
+    }
+
+    .copy-btn {
+      margin-top: 4px;
+      border: 1px solid rgba(163, 205, 238, 0.32);
+      color: #d7ebff;
+      background: rgba(48, 86, 129, 0.42);
+      border-radius: 8px;
+      padding: 4px 6px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .muted {
+      color: #9abfe2;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .dot-a { background: #f4be63; }
+    .dot-t { background: #7dd3fc; }
+    .dot-in { background: #2dd4bf; }
+    .dot-out { background: #fb7185; }
+
+    @media (max-width: 900px) {
+      .row { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .table-wrap { max-height: 55vh; }
+      .graph-wrap {
+        height: auto;
+        grid-template-columns: 1fr;
+      }
+      #graphCanvas { min-height: 56vh; }
+      .detail-pane {
+        border-left: none;
+        border-top: 1px solid rgba(156, 194, 224, 0.22);
+        max-height: 35vh;
+      }
+      .graph-search input { width: 130px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Litecoin Address Transaction Aggregator</h1>
+      <p>Paste LTC addresses, query multiple free public APIs, normalize the results, and merge transactions into a single live table.</p>
+    </section>
+
+    <section class="card">
+      <div class="controls">
+        <div>
+          <label for="addresses">LTC addresses (one per line)</label>
+          <textarea id="addresses" placeholder="LcHKM...&#10;ltc1q..."></textarea>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="maxTx">Max transactions per endpoint</label>
+            <input id="maxTx" type="number" min="10" max="500" value="150" />
+          </div>
+          <div>
+            <label for="graphTx">Graph tx node cap</label>
+            <input id="graphTx" type="number" min="40" max="900" value="260" />
+          </div>
+          <div>
+            <label for="timeout">Request timeout (ms)</label>
+            <input id="timeout" type="number" min="2000" max="30000" value="12000" />
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="runBtn" type="button">Fetch Transactions</button>
+          </div>
+        </div>
+
+        <label class="toggle" for="proxyMode">
+          <input id="proxyMode" type="checkbox" />
+          Retry failed requests through AllOrigins proxy (helps when browser CORS blocks an endpoint)
+        </label>
+
+        <p class="tiny">Note: "all available" depends on each provider's free limits, pagination rules, and uptime.</p>
+      </div>
+
+      <div class="meta" id="metaBar">
+        <span class="pill">Idle</span>
+      </div>
+    </section>
+
+    <section class="panel graph-panel">
+      <div class="graph-head">
+        <h2>Network Map (Obsidian-style interaction)</h2>
+        <div class="graph-actions">
+          <label class="graph-check" for="graphHideOthers">
+            <input id="graphHideOthers" type="checkbox" />
+            hide non-matches
+          </label>
+          <div class="graph-search">
+            <input id="graphSearch" type="text" placeholder="search address / txid" />
+            <button id="clearSearchBtn" type="button">Clear</button>
+          </div>
+          <button id="clusterBtn" type="button">Clusters: ON</button>
+          <span id="graphInfo">No graph yet</span>
+          <button id="resetGraphBtn" type="button">Reset View</button>
+        </div>
+      </div>
+      <div class="graph-wrap" id="graphWrap">
+        <canvas id="graphCanvas"></canvas>
+        <aside class="detail-pane" id="detailPane"></aside>
+        <div class="graph-legend">
+          <span><i class="dot dot-a"></i>Address</span>
+          <span><i class="dot dot-t"></i>Transaction</span>
+          <span><i class="dot dot-in"></i>Incoming edge</span>
+          <span><i class="dot dot-out"></i>Outgoing edge</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>Unified Transactions</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Address</th>
+                <th>TxID</th>
+                <th>Time</th>
+                <th>Conf</th>
+                <th>Value (LTC)</th>
+                <th>Seen On</th>
+              </tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Endpoint Status</h2>
+        <ul class="logs" id="logs"></ul>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const SATOSHIS = 100000000;
+
+    const endpointConfigs = [
+      {
+        name: "BlockCypher",
+        supportsPagination: false,
+        buildUrls(address) {
+          return [
+            `https://api.blockcypher.com/v1/ltc/main/addrs/${encodeURIComponent(address)}/full?limit=200`,
+          ];
+        },
+        parse({ address, data, maxTx }) {
+          const txs = (data && data.txs) || [];
+          return txs.slice(0, maxTx).map((tx) => {
+            const receivedSats = (tx.outputs || []).reduce((sum, o) => {
+              const addrs = o.addresses || [];
+              return sum + (addrs.includes(address) ? Number(o.value || 0) : 0);
+            }, 0);
+
+            const sentSats = (tx.inputs || []).reduce((sum, i) => {
+              const addrs = i.addresses || [];
+              return sum + (addrs.includes(address) ? Number(i.output_value || 0) : 0);
+            }, 0);
+
+            return {
+              address,
+              txid: tx.hash,
+              time: tx.confirmed || tx.received || null,
+              confirmations: Number(tx.confirmations || 0),
+              valueLtc: (receivedSats - sentSats) / SATOSHIS,
+              endpoint: "BlockCypher",
+            };
+          });
+        },
+      },
+      {
+        name: "Chain.so",
+        supportsPagination: false,
+        buildUrls(address) {
+          return [
+            `https://chain.so/api/v2/get_tx_received/LTC/${encodeURIComponent(address)}`,
+            `https://chain.so/api/v2/get_tx_spent/LTC/${encodeURIComponent(address)}`,
+          ];
+        },
+        parse({ address, responses, maxTx }) {
+          const received = (((responses[0] || {}).data || {}).txs || []).slice(0, maxTx).map((tx) => ({
+            address,
+            txid: tx.txid,
+            time: tx.time ? new Date(Number(tx.time) * 1000).toISOString() : null,
+            confirmations: Number(tx.confirmations || 0),
+            valueLtc: Number(tx.value || 0),
+            endpoint: "Chain.so",
+          }));
+
+          const spent = (((responses[1] || {}).data || {}).txs || []).slice(0, maxTx).map((tx) => ({
+            address,
+            txid: tx.txid,
+            time: tx.time ? new Date(Number(tx.time) * 1000).toISOString() : null,
+            confirmations: Number(tx.confirmations || 0),
+            valueLtc: -Math.abs(Number(tx.value || 0)),
+            endpoint: "Chain.so",
+          }));
+
+          return [...received, ...spent];
+        },
+      },
+      {
+        name: "Blockchair",
+        supportsPagination: false,
+        buildUrls(address) {
+          return [
+            `https://api.blockchair.com/litecoin/dashboards/address/${encodeURIComponent(address)}?transaction_details=true&limit=100`,
+          ];
+        },
+        parse({ address, data, maxTx }) {
+          const dashboard = (data && data.data && data.data[address]) || null;
+          const txDetails = (dashboard && dashboard.transactions) || [];
+
+          return txDetails.slice(0, maxTx).map((tx) => ({
+            address,
+            txid: tx.hash || tx.transaction_hash || tx.id || "unknown",
+            time: tx.time || null,
+            confirmations: Number(tx.block_id ? 1 : 0),
+            valueLtc: Number(tx.balance_change || 0) / SATOSHIS || 0,
+            endpoint: "Blockchair",
+          }));
+        },
+      },
+      {
+        name: "LitecoinSpace",
+        supportsPagination: true,
+        async fetchPaged({ address, maxTx, timeoutMs, allowProxy }) {
+          const out = [];
+          let next = `https://litecoinspace.org/api/address/${encodeURIComponent(address)}/txs`;
+          let guard = 0;
+
+          while (next && out.length < maxTx && guard < 25) {
+            const page = await fetchJson(next, timeoutMs, allowProxy);
+            const rows = Array.isArray(page) ? page : [];
+            out.push(...rows);
+
+            if (!rows.length || out.length >= maxTx) break;
+
+            const last = rows[rows.length - 1];
+            if (!last || !last.txid) break;
+            next = `https://litecoinspace.org/api/address/${encodeURIComponent(address)}/txs/chain/${last.txid}`;
+            guard += 1;
+          }
+
+          return out.slice(0, maxTx);
+        },
+        parse({ address, data }) {
+          const txs = Array.isArray(data) ? data : [];
+
+          return txs.map((tx) => {
+            const receivedSats = (tx.vout || []).reduce((sum, out) => {
+              return sum + (out.scriptpubkey_address === address ? Number(out.value || 0) : 0);
+            }, 0);
+
+            const sentSats = (tx.vin || []).reduce((sum, vin) => {
+              const prev = vin.prevout || {};
+              return sum + (prev.scriptpubkey_address === address ? Number(prev.value || 0) : 0);
+            }, 0);
+
+            return {
+              address,
+              txid: tx.txid,
+              time: tx.status && tx.status.block_time ? new Date(Number(tx.status.block_time) * 1000).toISOString() : null,
+              confirmations: tx.status && tx.status.confirmed ? 1 : 0,
+              valueLtc: (receivedSats - sentSats) / SATOSHIS,
+              endpoint: "LitecoinSpace",
+            };
+          });
+        },
+      },
+    ];
+
+    const ui = {
+      addresses: document.getElementById("addresses"),
+      maxTx: document.getElementById("maxTx"),
+      graphTx: document.getElementById("graphTx"),
+      timeout: document.getElementById("timeout"),
+      proxyMode: document.getElementById("proxyMode"),
+      runBtn: document.getElementById("runBtn"),
+      txBody: document.getElementById("txBody"),
+      logs: document.getElementById("logs"),
+      metaBar: document.getElementById("metaBar"),
+      graphWrap: document.getElementById("graphWrap"),
+      graphCanvas: document.getElementById("graphCanvas"),
+      graphInfo: document.getElementById("graphInfo"),
+      resetGraphBtn: document.getElementById("resetGraphBtn"),
+      clusterBtn: document.getElementById("clusterBtn"),
+      graphSearch: document.getElementById("graphSearch"),
+      clearSearchBtn: document.getElementById("clearSearchBtn"),
+      graphHideOthers: document.getElementById("graphHideOthers"),
+      detailPane: document.getElementById("detailPane"),
+    };
+
+    const graph = {
+      nodes: [],
+      edges: [],
+      byId: new Map(),
+      selected: null,
+      hover: null,
+      dragNode: null,
+      isPanning: false,
+      lastMouseX: 0,
+      lastMouseY: 0,
+      panX: 0,
+      panY: 0,
+      scale: 1,
+      raf: null,
+      dpr: window.devicePixelRatio || 1,
+      tick: 0,
+      clusterMode: true,
+      clusterCenters: new Map(),
+      matchIds: new Set(),
+      searchQuery: "",
+      txRows: new Map(),
+      addressRows: new Map(),
+    };
+
+    function parseAddresses(raw) {
+      const uniq = new Set();
+      raw.split(/\r?\n|,|\s+/).map((s) => s.trim()).filter(Boolean).forEach((a) => uniq.add(a));
+      return [...uniq];
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "-";
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+    }
+
+    function short(txid) {
+      if (!txid || txid.length < 14) return txid || "-";
+      return `${txid.slice(0, 8)}...${txid.slice(-8)}`;
+    }
+
+    function setMeta(items) {
+      ui.metaBar.innerHTML = items.map((x) => `<span class="pill">${x}</span>`).join("");
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function pushLog(html) {
+      const li = document.createElement("li");
+      li.innerHTML = html;
+      ui.logs.prepend(li);
+    }
+
+    async function copyText(value) {
+      try {
+        await navigator.clipboard.writeText(String(value || ""));
+      } catch {
+        window.prompt("Copy to clipboard:", String(value || ""));
+      }
+    }
+
+    async function fetchJson(url, timeoutMs, allowProxy) {
+      try {
+        return await fetchWithTimeout(url, timeoutMs);
+      } catch (err) {
+        if (!allowProxy) throw err;
+        const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        return await fetchWithTimeout(proxied, timeoutMs);
+      }
+    }
+
+    async function fetchWithTimeout(url, timeoutMs) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+
+      try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    function mergeTransactions(items) {
+      const map = new Map();
+
+      for (const tx of items) {
+        if (!tx || !tx.txid) continue;
+        const key = `${tx.address}::${tx.txid}`;
+        const current = map.get(key);
+
+        if (!current) {
+          map.set(key, { ...tx, endpoints: new Set([tx.endpoint]) });
+        } else {
+          current.endpoints.add(tx.endpoint);
+          if ((current.time === null || current.time === "-") && tx.time) current.time = tx.time;
+          if (current.confirmations < tx.confirmations) current.confirmations = tx.confirmations;
+          if (Math.abs(current.valueLtc) < Math.abs(tx.valueLtc)) current.valueLtc = tx.valueLtc;
+        }
+      }
+
+      return [...map.values()].map((tx) => ({
+        ...tx,
+        endpoint: [...tx.endpoints].join(", "),
+      }));
+    }
+
+    function renderTransactions(rows) {
+      if (!rows.length) {
+        ui.txBody.innerHTML = `<tr><td colspan="6">No transactions found.</td></tr>`;
+        return;
+      }
+
+      rows.sort((a, b) => {
+        const ta = a.time ? new Date(a.time).getTime() : 0;
+        const tb = b.time ? new Date(b.time).getTime() : 0;
+        return tb - ta;
+      });
+
+      ui.txBody.innerHTML = rows.map((tx) => {
+        const cls = tx.valueLtc > 0 ? "v-pos" : (tx.valueLtc < 0 ? "v-neg" : "");
+        const value = Number.isFinite(tx.valueLtc) ? tx.valueLtc.toFixed(8) : "0.00000000";
+        return `<tr>
+          <td><code>${escapeHtml(tx.address)}</code></td>
+          <td><code title="${escapeHtml(tx.txid)}">${escapeHtml(short(tx.txid))}</code></td>
+          <td>${formatDate(tx.time)}</td>
+          <td>${tx.confirmations}</td>
+          <td class="${cls}">${value}</td>
+          <td>${escapeHtml(tx.endpoint)}</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function randomRange(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function hashText(value) {
+      let h = 0;
+      const text = String(value || "");
+      for (let i = 0; i < text.length; i += 1) {
+        h = ((h << 5) - h + text.charCodeAt(i)) | 0;
+      }
+      return Math.abs(h);
+    }
+
+    function resizeGraphCanvas() {
+      const c = ui.graphCanvas;
+      const rect = c.getBoundingClientRect();
+      graph.dpr = window.devicePixelRatio || 1;
+      c.width = Math.max(1, Math.floor(rect.width * graph.dpr));
+      c.height = Math.max(1, Math.floor(rect.height * graph.dpr));
+    }
+
+    function worldFromScreen(x, y) {
+      return {
+        x: (x - graph.panX) / graph.scale,
+        y: (y - graph.panY) / graph.scale,
+      };
+    }
+
+    function pickNode(screenX, screenY) {
+      const p = worldFromScreen(screenX, screenY);
+      let best = null;
+      let bestDist = Infinity;
+
+      for (const n of graph.nodes) {
+        const r = (n.r || 6) + 5;
+        const dx = p.x - n.x;
+        const dy = p.y - n.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < r && dist < bestDist) {
+          best = n;
+          bestDist = dist;
+        }
+      }
+      return best;
+    }
+
+    function setGraphInfo(node) {
+      if (!node) {
+        const queryPart = graph.searchQuery ? ` | filter '${graph.searchQuery}'` : "";
+        ui.graphInfo.textContent = `${graph.nodes.length} nodes | ${graph.edges.length} edges | drag nodes, pan canvas, wheel zoom${queryPart}`;
+        return;
+      }
+
+      if (node.type === "address") {
+        ui.graphInfo.textContent = `Address ${node.id} | degree ${node.degree || 0}`;
+      } else {
+        const sign = node.valueLtc > 0 ? "+" : "";
+        ui.graphInfo.textContent = `TX ${short(node.id)} | ${sign}${node.valueLtc.toFixed(8)} LTC`;
+      }
+    }
+
+    function resetGraphView() {
+      const c = ui.graphCanvas;
+      graph.panX = c.width / graph.dpr / 2;
+      graph.panY = c.height / graph.dpr / 2;
+      graph.scale = 1;
+    }
+
+    function updateGraphFilter(rawQuery) {
+      const query = String(rawQuery || "").trim().toLowerCase();
+      graph.searchQuery = query;
+      const ids = new Set();
+
+      if (query) {
+        for (const n of graph.nodes) {
+          if (String(n.id).toLowerCase().includes(query)) {
+            ids.add(n.key);
+          }
+        }
+      }
+
+      graph.matchIds = ids;
+      setGraphInfo(graph.selected || graph.hover || null);
+    }
+
+    function edgeVisible(edge) {
+      if (!graph.searchQuery) return true;
+      return graph.matchIds.has(edge.source.key) || graph.matchIds.has(edge.target.key);
+    }
+
+    function renderDetail(node) {
+      if (!node) {
+        ui.detailPane.innerHTML = `
+          <h3>Inspector</h3>
+          <p class="muted">Click any address or transaction node to inspect details, then copy values quickly.</p>
+        `;
+        return;
+      }
+
+      if (node.type === "address") {
+        const rows = (graph.addressRows.get(node.id) || []).slice(0, 24);
+        let incoming = 0;
+        let outgoing = 0;
+        for (const r of rows) {
+          if (r.valueLtc >= 0) incoming += r.valueLtc;
+          else outgoing += r.valueLtc;
+        }
+
+        ui.detailPane.innerHTML = `
+          <h3>Address</h3>
+          <div class="d-kv">
+            <div><span>ID:</span> <code>${escapeHtml(node.id)}</code></div>
+            <div><span>Degree:</span> ${node.degree || 0}</div>
+            <div><span>Incoming:</span> ${incoming.toFixed(8)} LTC</div>
+            <div><span>Outgoing:</span> ${outgoing.toFixed(8)} LTC</div>
+            <div><span>Net:</span> ${(incoming + outgoing).toFixed(8)} LTC</div>
+          </div>
+          <button class="copy-btn" data-copy="${escapeHtml(node.id)}">Copy address</button>
+          <h3>Recent Related TX</h3>
+          <div class="d-list">
+            ${rows.map((r) => `
+              <div class="d-item">
+                <div><code>${escapeHtml(short(r.txid))}</code> <span class="muted">(${formatDate(r.time)})</span></div>
+                <div class="${r.valueLtc >= 0 ? "v-pos" : "v-neg"}">${r.valueLtc.toFixed(8)} LTC</div>
+                <button class="copy-btn" data-copy="${escapeHtml(r.txid)}">Copy txid</button>
+              </div>
+            `).join("") || `<div class="muted">No related rows in current graph.</div>`}
+          </div>
+        `;
+      } else {
+        const rows = graph.txRows.get(node.id) || [];
+        const first = rows[0] || { time: null, endpoint: "-", confirmations: 0, valueLtc: node.valueLtc || 0 };
+
+        ui.detailPane.innerHTML = `
+          <h3>Transaction</h3>
+          <div class="d-kv">
+            <div><span>TxID:</span> <code>${escapeHtml(node.id)}</code></div>
+            <div><span>Time:</span> ${escapeHtml(formatDate(first.time))}</div>
+            <div><span>Confirmations:</span> ${Number(first.confirmations || 0)}</div>
+            <div><span>Value:</span> ${Number(first.valueLtc || 0).toFixed(8)} LTC</div>
+            <div><span>Seen on:</span> ${escapeHtml(first.endpoint || "-")}</div>
+          </div>
+          <button class="copy-btn" data-copy="${escapeHtml(node.id)}">Copy txid</button>
+          <h3>Connected Addresses</h3>
+          <div class="d-list">
+            ${rows.map((r) => `
+              <div class="d-item">
+                <div><code>${escapeHtml(r.address)}</code></div>
+                <div class="${r.valueLtc >= 0 ? "v-pos" : "v-neg"}">${Number(r.valueLtc || 0).toFixed(8)} LTC</div>
+                <button class="copy-btn" data-copy="${escapeHtml(r.address)}">Copy address</button>
+              </div>
+            `).join("") || `<div class="muted">No related addresses in current graph.</div>`}
+          </div>
+        `;
+      }
+
+      for (const btn of ui.detailPane.querySelectorAll("[data-copy]")) {
+        btn.addEventListener("click", () => {
+          copyText(btn.getAttribute("data-copy") || "");
+        });
+      }
+    }
+
+    function buildGraph(rows, addressList, graphTxCap) {
+      const byId = new Map();
+      const nodes = [];
+      const edges = [];
+      const txRows = new Map();
+      const addressRows = new Map();
+
+      const addNode = (node) => {
+        if (!byId.has(node.key)) {
+          byId.set(node.key, node);
+          nodes.push(node);
+        }
+        return byId.get(node.key);
+      };
+
+      const addresses = [...new Set(addressList)];
+      const angleStep = addresses.length ? (Math.PI * 2) / addresses.length : 0;
+      addresses.forEach((addr, idx) => {
+        const a = angleStep * idx;
+        addNode({
+          key: `a:${addr}`,
+          id: addr,
+          type: "address",
+          x: Math.cos(a) * 180,
+          y: Math.sin(a) * 180,
+          vx: 0,
+          vy: 0,
+          r: 8.5,
+          degree: 0,
+        });
+      });
+
+      const txRowsForGraph = [...rows]
+        .sort((a, b) => (new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime()))
+        .slice(0, graphTxCap);
+
+      for (const tx of txRowsForGraph) {
+        const aNode = addNode({
+          key: `a:${tx.address}`,
+          id: tx.address,
+          type: "address",
+          x: randomRange(-140, 140),
+          y: randomRange(-140, 140),
+          vx: 0,
+          vy: 0,
+          r: 8.5,
+          degree: 0,
+        });
+
+        const tNode = addNode({
+          key: `t:${tx.txid}`,
+          id: tx.txid,
+          type: "tx",
+          x: randomRange(-220, 220),
+          y: randomRange(-220, 220),
+          vx: 0,
+          vy: 0,
+          r: 4.8,
+          valueLtc: Number(tx.valueLtc || 0),
+        });
+
+        if (!txRows.has(tx.txid)) txRows.set(tx.txid, []);
+        txRows.get(tx.txid).push(tx);
+        if (!addressRows.has(tx.address)) addressRows.set(tx.address, []);
+        addressRows.get(tx.address).push(tx);
+
+        aNode.degree = (aNode.degree || 0) + 1;
+        const curveSeed = hashText(`${tx.address}:${tx.txid}`);
+        edges.push({
+          source: aNode,
+          target: tNode,
+          valueLtc: Number(tx.valueLtc || 0),
+          curveSign: curveSeed % 2 === 0 ? 1 : -1,
+          phase: curveSeed % 31,
+        });
+      }
+
+      const clusterGroups = new Map();
+      for (const n of nodes) {
+        if (n.type !== "address") continue;
+        n.clusterKey = n.id.slice(0, 4);
+        if (!clusterGroups.has(n.clusterKey)) clusterGroups.set(n.clusterKey, []);
+        clusterGroups.get(n.clusterKey).push(n);
+      }
+
+      const centerMap = new Map();
+      const keys = [...clusterGroups.keys()];
+      keys.forEach((key, i) => {
+        const angle = (Math.PI * 2 * i) / Math.max(1, keys.length);
+        centerMap.set(key, {
+          x: Math.cos(angle) * 230,
+          y: Math.sin(angle) * 230,
+        });
+      });
+
+      graph.nodes = nodes;
+      graph.edges = edges;
+      graph.byId = byId;
+      graph.txRows = txRows;
+      graph.addressRows = addressRows;
+      graph.clusterCenters = centerMap;
+      graph.selected = null;
+      graph.hover = null;
+      resetGraphView();
+      updateGraphFilter(ui.graphSearch.value || "");
+      renderDetail(null);
+      setGraphInfo(null);
+    }
+
+    function stepGraphPhysics() {
+      const nodes = graph.nodes;
+      const edges = graph.edges;
+      if (!nodes.length) return;
+
+      const repulsion = 1200;
+      const spring = 0.01;
+      const ideal = 66;
+
+      for (const n of nodes) {
+        n.vx *= 0.93;
+        n.vy *= 0.93;
+      }
+
+      for (let i = 0; i < nodes.length; i += 1) {
+        for (let j = i + 1; j < nodes.length; j += 1) {
+          const a = nodes[i];
+          const b = nodes[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const d2 = (dx * dx + dy * dy) + 0.1;
+          const d = Math.sqrt(d2);
+          const f = repulsion / d2;
+          const ux = dx / d;
+          const uy = dy / d;
+
+          a.vx -= ux * f;
+          a.vy -= uy * f;
+          b.vx += ux * f;
+          b.vy += uy * f;
+        }
+      }
+
+      for (const e of edges) {
+        const dx = e.target.x - e.source.x;
+        const dy = e.target.y - e.source.y;
+        const d = Math.max(0.01, Math.hypot(dx, dy));
+        const ux = dx / d;
+        const uy = dy / d;
+        const stretch = d - ideal;
+        const f = stretch * spring;
+
+        e.source.vx += ux * f;
+        e.source.vy += uy * f;
+        e.target.vx -= ux * f;
+        e.target.vy -= uy * f;
+      }
+
+      for (const n of nodes) {
+        if (graph.clusterMode && n.type === "address") {
+          const center = graph.clusterCenters.get(n.clusterKey);
+          if (center) {
+            n.vx += (center.x - n.x) * 0.0027;
+            n.vy += (center.y - n.y) * 0.0027;
+          }
+        }
+        n.vx += (-n.x) * 0.0007;
+        n.vy += (-n.y) * 0.0007;
+        if (graph.dragNode === n) continue;
+        n.x += n.vx;
+        n.y += n.vy;
+      }
+    }
+
+    function drawGraph() {
+      const c = ui.graphCanvas;
+      const ctx = c.getContext("2d");
+      if (!ctx) return;
+
+      ctx.setTransform(graph.dpr, 0, 0, graph.dpr, 0, 0);
+      ctx.clearRect(0, 0, c.width, c.height);
+
+      const w = c.width / graph.dpr;
+      const h = c.height / graph.dpr;
+
+      if (!graph.nodes.length) {
+        ctx.fillStyle = "#a0c7eb";
+        ctx.font = "500 14px Space Grotesk";
+        ctx.fillText("Fetch transactions to build the network map.", 18, 28);
+        return;
+      }
+
+      ctx.save();
+      ctx.translate(graph.panX, graph.panY);
+      ctx.scale(graph.scale, graph.scale);
+
+      const hideOthers = ui.graphHideOthers.checked;
+      const hasFilter = Boolean(graph.searchQuery);
+
+      for (const e of graph.edges) {
+        const match = edgeVisible(e);
+        if (hasFilter && hideOthers && !match) continue;
+        const alpha = hasFilter ? (match ? 0.7 : 0.08) : 0.34;
+        const dx = e.target.x - e.source.x;
+        const dy = e.target.y - e.source.y;
+        const len = Math.max(1, Math.hypot(dx, dy));
+        const nx = -dy / len;
+        const ny = dx / len;
+        const curve = Math.min(24, 6 + len * 0.08) * e.curveSign;
+        const cx = (e.source.x + e.target.x) / 2 + nx * curve;
+        const cy = (e.source.y + e.target.y) / 2 + ny * curve;
+
+        ctx.beginPath();
+        ctx.moveTo(e.source.x, e.source.y);
+        ctx.quadraticCurveTo(cx, cy, e.target.x, e.target.y);
+        ctx.setLineDash([4, 7]);
+        ctx.lineDashOffset = -((graph.tick * 0.5) + e.phase);
+        ctx.lineWidth = 1.05;
+        ctx.strokeStyle = e.valueLtc >= 0 ? `rgba(45, 212, 191, ${alpha})` : `rgba(251, 113, 133, ${alpha})`;
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      for (const n of graph.nodes) {
+        const match = !hasFilter || graph.matchIds.has(n.key);
+        if (hasFilter && hideOthers && !match) continue;
+        const active = graph.selected === n || graph.hover === n;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        if (n.type === "address") {
+          ctx.fillStyle = active ? "#ffd48b" : "#f4be63";
+        } else {
+          ctx.fillStyle = active ? "#d6f0ff" : "#7dd3fc";
+        }
+        if (hasFilter && !match) {
+          ctx.globalAlpha = 0.2;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        } else {
+          ctx.fill();
+        }
+
+        if (active) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r + 4, 0, Math.PI * 2);
+          ctx.strokeStyle = "rgba(232, 245, 255, 0.82)";
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+
+        if (n.type === "address" || active) {
+          ctx.fillStyle = "rgba(231, 243, 255, 0.94)";
+          ctx.font = n.type === "address" ? "600 11px IBM Plex Mono" : "500 10px IBM Plex Mono";
+          const label = n.type === "address" ? short(n.id) : short(n.id);
+          if (!hasFilter || match || active) {
+            ctx.fillText(label, n.x + n.r + 5, n.y + 3);
+          }
+        }
+      }
+
+      ctx.restore();
+
+      ctx.fillStyle = "rgba(189, 220, 255, 0.56)";
+      ctx.font = "500 11px IBM Plex Mono";
+      ctx.fillText(`${graph.nodes.length}n / ${graph.edges.length}e`, w - 98, h - 12);
+    }
+
+    function tickGraph() {
+      graph.tick += 1;
+      stepGraphPhysics();
+      drawGraph();
+      graph.raf = requestAnimationFrame(tickGraph);
+    }
+
+    function ensureGraphLoop() {
+      if (!graph.raf) graph.raf = requestAnimationFrame(tickGraph);
+    }
+
+    function setupGraphInteractions() {
+      const c = ui.graphCanvas;
+      resizeGraphCanvas();
+      resetGraphView();
+      drawGraph();
+      ensureGraphLoop();
+
+      if (typeof window.ResizeObserver === "function") {
+        const ro = new ResizeObserver(() => {
+          resizeGraphCanvas();
+          drawGraph();
+        });
+        ro.observe(ui.graphWrap);
+      } else {
+        window.addEventListener("resize", () => {
+          resizeGraphCanvas();
+          drawGraph();
+        });
+      }
+
+      c.addEventListener("mousedown", (ev) => {
+        const rect = c.getBoundingClientRect();
+        const sx = ev.clientX - rect.left;
+        const sy = ev.clientY - rect.top;
+        const hit = pickNode(sx, sy);
+        graph.lastMouseX = sx;
+        graph.lastMouseY = sy;
+
+        if (hit) {
+          graph.dragNode = hit;
+          graph.selected = hit;
+          setGraphInfo(hit);
+          renderDetail(hit);
+        } else {
+          graph.selected = null;
+          renderDetail(null);
+          graph.isPanning = true;
+        }
+      });
+
+      c.addEventListener("mousemove", (ev) => {
+        const rect = c.getBoundingClientRect();
+        const sx = ev.clientX - rect.left;
+        const sy = ev.clientY - rect.top;
+
+        if (graph.dragNode) {
+          const p = worldFromScreen(sx, sy);
+          graph.dragNode.x = p.x;
+          graph.dragNode.y = p.y;
+          graph.dragNode.vx = 0;
+          graph.dragNode.vy = 0;
+        } else if (graph.isPanning) {
+          graph.panX += (sx - graph.lastMouseX);
+          graph.panY += (sy - graph.lastMouseY);
+        } else {
+          graph.hover = pickNode(sx, sy);
+          setGraphInfo(graph.hover || graph.selected);
+        }
+
+        graph.lastMouseX = sx;
+        graph.lastMouseY = sy;
+      });
+
+      const clearActiveDrag = () => {
+        graph.dragNode = null;
+        graph.isPanning = false;
+      };
+      c.addEventListener("mouseup", clearActiveDrag);
+      c.addEventListener("mouseleave", clearActiveDrag);
+
+      c.addEventListener("wheel", (ev) => {
+        ev.preventDefault();
+        const rect = c.getBoundingClientRect();
+        const sx = ev.clientX - rect.left;
+        const sy = ev.clientY - rect.top;
+        const world = worldFromScreen(sx, sy);
+
+        const factor = ev.deltaY < 0 ? 1.1 : 0.9;
+        graph.scale = Math.max(0.18, Math.min(3.8, graph.scale * factor));
+
+        graph.panX = sx - world.x * graph.scale;
+        graph.panY = sy - world.y * graph.scale;
+      }, { passive: false });
+
+      ui.resetGraphBtn.addEventListener("click", () => {
+        resetGraphView();
+      });
+
+      ui.clusterBtn.addEventListener("click", () => {
+        graph.clusterMode = !graph.clusterMode;
+        ui.clusterBtn.textContent = `Clusters: ${graph.clusterMode ? "ON" : "OFF"}`;
+      });
+
+      ui.graphSearch.addEventListener("input", (ev) => {
+        updateGraphFilter(ev.target.value || "");
+      });
+
+      ui.clearSearchBtn.addEventListener("click", () => {
+        ui.graphSearch.value = "";
+        updateGraphFilter("");
+      });
+
+      ui.graphHideOthers.addEventListener("change", () => {
+        drawGraph();
+      });
+    }
+
+    async function fetchFromEndpoint(endpoint, address, options) {
+      const { maxTx, timeoutMs, allowProxy } = options;
+
+      if (endpoint.supportsPagination && endpoint.fetchPaged) {
+        const data = await endpoint.fetchPaged({ address, maxTx, timeoutMs, allowProxy });
+        return endpoint.parse({ address, data, maxTx });
+      }
+
+      const urls = endpoint.buildUrls(address);
+      const responses = [];
+      for (const url of urls) {
+        responses.push(await fetchJson(url, timeoutMs, allowProxy));
+      }
+      return endpoint.parse({ address, data: responses[0], responses, maxTx });
+    }
+
+    async function fetchWithProviderFallback(address, options) {
+      for (let i = 0; i < endpointConfigs.length; i += 1) {
+        const ep = endpointConfigs[i];
+        const started = performance.now();
+
+        try {
+          const txs = await fetchFromEndpoint(ep, address, options);
+          return {
+            ok: true,
+            txs,
+            endpointName: ep.name,
+            index: i,
+            ms: Math.round(performance.now() - started),
+          };
+        } catch (err) {
+          pushLog(`<b>${ep.name}</b> <span class="err">Failed</span> for <code>${address}</code> - ${(err && err.message) || "unknown error"}`);
+        }
+      }
+
+      return {
+        ok: false,
+        txs: [],
+        endpointName: null,
+        index: -1,
+        ms: 0,
+      };
+    }
+
+    async function run() {
+      const addresses = parseAddresses(ui.addresses.value);
+      const maxTx = Math.min(500, Math.max(10, Number(ui.maxTx.value) || 150));
+      const graphTxCap = Math.min(900, Math.max(40, Number(ui.graphTx.value) || 260));
+      const timeoutMs = Math.min(30000, Math.max(2000, Number(ui.timeout.value) || 12000));
+      const allowProxy = ui.proxyMode.checked;
+
+      ui.logs.innerHTML = "";
+      ui.txBody.innerHTML = "";
+
+      if (!addresses.length) {
+        setMeta(["Add at least 1 LTC address"]);
+        return;
+      }
+
+      ui.runBtn.disabled = true;
+      const t0 = performance.now();
+      const all = [];
+      let okCount = 0;
+      let failCount = 0;
+
+      try {
+        setMeta([`Running`, `${addresses.length} addresses`, `${endpointConfigs.length} endpoints`]);
+
+        for (const address of addresses) {
+          pushLog(`<b>${address}</b> started`);
+
+          const result = await fetchWithProviderFallback(address, { maxTx, timeoutMs, allowProxy });
+          if (result.ok) {
+            all.push(...result.txs);
+            okCount += 1;
+            failCount += result.index;
+            pushLog(`<b>${result.endpointName}</b> <span class="ok">OK</span> for <code>${address}</code> (${result.txs.length} tx, ${result.ms} ms)`);
+          } else {
+            failCount += endpointConfigs.length;
+            pushLog(`<b>All Providers</b> <span class="err">Failed</span> for <code>${address}</code>`);
+          }
+        }
+
+        const merged = mergeTransactions(all);
+        renderTransactions(merged);
+        buildGraph(merged, addresses, graphTxCap);
+
+        const sec = ((performance.now() - t0) / 1000).toFixed(2);
+        setMeta([
+          `${addresses.length} addresses`,
+          `${merged.length} unique tx`,
+          `${Math.min(graphTxCap, merged.length)} tx in graph`,
+          `${okCount} endpoint calls OK`,
+          `${failCount} failed`,
+          `${sec}s total`,
+        ]);
+      } catch (err) {
+        pushLog(`<b>Runtime</b> <span class="err">Error</span> - ${(err && err.message) || "unknown error"}`);
+        setMeta(["Runtime error", "Open browser console for details"]);
+      } finally {
+        ui.runBtn.disabled = false;
+      }
+    }
+
+    ui.runBtn.addEventListener("click", run);
+    try {
+      setupGraphInteractions();
+    } catch (err) {
+      pushLog(`<b>Graph Init</b> <span class="err">Failed</span> - ${(err && err.message) || "unknown error"}`);
+      setMeta(["Graph init failed", "Try a modern browser"]);
+    }
+  </script>
+</body>
+</html>
